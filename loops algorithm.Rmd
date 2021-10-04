@@ -1,0 +1,122 @@
+---
+title: "循环"
+author:
+  - 陈冰顺
+documentclass: ctexart
+keywords:
+  - 循环
+output:
+  rticles::ctex:
+    fig_caption: yes
+    number_sections: yes
+    toc: yes
+---
+#循环
+##Example: 1-Norm with For Statement
+$$\left \| v \right \| _{1} = \sum_{i=1}^{n} \ \left | \left [ i \right ]  \right | $$
+The vector has n elements. The most trivial algorithm to compute the 1-norm can
+be described as follows:
+- Initialize a sum value as zero.
+- Add the absolute value of the first element to the sum value.
+- Add the absolute value of the second element (if n > 2) to the sum value.
+- ...
+- Add the absolute value of the last element to the sum value.
+- Return the sum value.
+```{r}
+onenorm_for <- function(v){
+  sumvalue <- 0
+  for(i in 1:length(v)){
+    sumvalue <- sumvalue + abs(v[i])
+  }
+}
+
+```
+Calculation of 1-Norm Using For (Incorrect)
+```{r}
+onenorm_for2 <- function(v){
+  sumvalue <- 0
+  for (i in 1:length(v)) {
+    sumvalue <- sumvalue + abs(v[1])##这里
+  }
+  return(sumvalue)
+}
+```
+Specifically, instead of adding the absolute values of the elements in v, just the
+absolute value of the first element is added for n times. Hence, the result (output) is
+$$\sum_{i=1}^{n}|v[1]|=n|v[1]|$$
+In this case, the loop and update operations are written correctly, but the number of
+elements is fixed to 10. The programmer may be sure that the number of elements
+in input vectors to be considered and handled via this program is always 10. But,
+why not to make it more general without too much effort?
+
+```{r}
+##比较整齐的写法
+onenorm_for3 <- function(v){
+  sumvalue <- 0
+  n <- length(v)
+  for (i in 1:n) {
+    sumvalue <- sumvalue + abs(v[i])
+  }
+  return(sumvalue)
+}
+```
+
+```{r}
+onenorm_for4 <- function(v){
+  sumvalue <- abs(v[1])
+  n <- length(v)
+  for (i in 2:n) {
+    sumvalue <- sumvalue + abs(v[i])
+  }
+  return(sumvalue)
+}
+```
+
+## Example: 1-Norm with While Statement
+```{r}
+onenorm_while <- function(v){
+  sumvalue <- 0
+  i <- 1
+  while(i <= length(v)){
+    sumvalue <- sumvalue + abs(v[i])
+    i <- i + 1
+  }
+  return(sumvalue)
+}
+```
+Note the following specific commands due to the structure of the while statement:
+- The variable i is initialized as 1 before the loop.
+- In addition to the update of the variable sumvalue, the variable i is incremented inside the loop as i=i+1.
+
+These are because the while statement indicates only a condition for stopping the
+loop whereas no information is provided for the initialization or incrementation, as
+opposed to the for statement, where all possible values of the variable i are clearly
+defined.
+
+```{r}
+##错误
+onenorm_while2 <- function(v){
+  sumvalue <- 0
+  i <- 1
+  while(i <- length(v)){
+    i <- i + 1##这里
+    sumvalue <- sumvalue + abs(v[i])
+  }
+  return(sumvalue)
+}
+```
+$$\|v\|_{1}=\sum_{i=2}^{n+1}|v[i]|$$
+
+```{r}
+onenorm_while3 <- function(v){
+  sumvalue <- 0
+  i <- 1
+  while(i <= length(v)){
+    sumvalue <- sumvalue + abs(v[i])
+  }
+  return(sumvalue)
+}
+```
+This simple mistake leads to the famous infinite loop. Since i is not incremented,
+the condition in the while statement is always satisfied. Hence, the program continues infinitely (at least in theory!), adding the absolute value of the first element
+repetitively. This is a very serious problem.

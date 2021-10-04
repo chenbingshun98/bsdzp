@@ -1,0 +1,95 @@
+
+library("caret")
+
+dat0 = read.csv("C:/Users/terry/Documents/我爱学习/统计软件/R/R_code/R与千寻（代码+数据）/第五章 R语言与机器学习/5.1 机器学习概述/相亲数据.csv", fileEncoding = "UTF-8")
+head(dat0)
+
+### 1.数据预处理及数据分割 ###
+## (1) 缺失值处理 ##
+nrow(dat0)
+
+dat = na.omit(dat0)
+nrow(dat)
+
+## (2) 将定性变量转换为因子性变量 ##
+# 转换数据类型
+dat$决定 = factor(dat$决定,
+                levels = c(0, 1), 
+                labels = c("拒绝", "接收"))
+dat$性别 = factor(dat$性别,
+                levels = c(0, 1), 
+                labels = c("女", "男"))
+dat$种族 = factor(dat$种族,
+                levels = c(1, 2, 3, 4, 5, 6), 
+                labels = c("非洲裔", "欧洲裔", "拉丁裔", "亚裔", "印第安土著", "其他"))
+dat$从事领域 = factor(dat$从事领域, levels = 1:18, 
+                  labels = c("法律", "数学", "社会科学或心理学",
+                             "医学或药物学或生物技术", "工程学", "写作或新闻",
+                             "历史或宗教或哲学", "商业或经济或金融", "教育或学术",
+                             "生物科学或化学或物理", "社会工作", "大学在读或未择方向",
+                             "政治学或国际事务", "电影", "艺术管理",
+                             "语言", "建筑学", "其他"))
+dat$对方决定 = factor(dat$对方决定, labels = c("拒绝", "接收"))
+dat$对方种族 = factor(dat$对方种族,
+                  levels = c(1, 2, 3, 4, 5,6),
+                  labels = c("非洲裔", "欧洲裔", "拉丁裔", "亚裔", "印第安土著", "其他"))
+dat$是否同一种族 = factor(dat$是否同一种族, 
+                    levels = c(0, 1), 
+                    labels = c("非同一种族", "同一种族"))
+
+## (3) 数据划分为训练集和测试集 ##
+# 设置随机种子
+set.seed(1234)
+# 将数据集的80%划分为训练集，20%划分为测试集
+trainIndex = createDataPartition(dat$决定, p = .8, 
+                                 list = FALSE, 
+                                 times = 1)
+# createDataPartition会自动从y的各个level随机取出等比例的数据来，组成训练集,可理解为分层抽样；
+datTrain = dat[trainIndex, ]
+# 训练集
+datTest = dat[-trainIndex, ]
+# 测试集
+table(dat$决定) / nrow(dat)  # 全集上因变量各个水平的比例
+
+table(datTrain$决定) / nrow(datTrain)  # 训练集上因变量各个水平的比例
+
+table(datTest$决定) / nrow(datTest)  # 测试集上因变量各个水平的比例
+
+
+## (4) 标准化处理 ##
+preProcValues = preProcess(datTrain, method = c("center", "scale"))
+trainTransformed = predict(preProcValues, datTrain)
+testTransformed = predict(preProcValues, datTest)
+# 利用训练集的均值和方差对测试集进行标准化
+
+### 2.变量选择 ###
+
+## 封装法 rfe: Recursive feature selection ##
+subsets = c(2, 5, 10, 15, 20)
+# 要选择的变量个数
+ctrl = rfeControl(functions = rfFuncs, method = "cv")
+# 首先定义控制参数，functions是确定用什么样的模型进行自变量排序，本例选择的模型是随机森林
+# 根据目标函数（通常是预测效果评分），每次选择若干特征。
+# method是确定用什么样的抽样方法，本例使用cv，即交叉检验
+x = trainTransformed [, -which( colnames(trainTransformed ) %in% "决定")]
+y = trainTransformed [, "决定"]
+library("e1071")
+Profile = rfe(x,y,sizes = subsets, rfeControl = ctrl)
+Profile$optVariables  # 筛选出15个变量
+
+
+### 3.模型训练及调参 ###
+dat.train = trainTransformed[, c(Profile$optVariables, "决定")]
+dat.test = testTransformed[, c(Profile$optVariables, "决定")]
+
+## 随机森林 ##
+set.seed(1234)
+gbmFit1 = train(决定 ~., data = dat.train, method = "rf")
+# 用于训练模型
+importance = varImp(gbmFit1, scale = FALSE)
+# 得到各个变量的重要性
+plot(importance, xlab = "重要性")
+
+### 4.模型预测及评价 ###
+data.predict = predict(gbmFit1, newdata = dat.test)
+confusionMatrix(data.predict, dat.test$决定)
